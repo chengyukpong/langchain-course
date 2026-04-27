@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangChain vs LangGraph — Interactive Course</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #22223a;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --accent3: #43e97b;
+    --text: #e8e6f0;
+    --text-dim: #8a88a0;
+    --border: #2e2e48;
+    --code-bg: #12121c;
+    --correct: #43e97b;
+    --wrong: #ff6584;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+  /* --- NAV --- */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 280px; background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0; overflow-y: auto; z-index: 100;
+    transition: transform .3s;
+  }
+  .sidebar h2 {
+    font-size: 14px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--accent); padding: 0 24px; margin-bottom: 16px;
+  }
+  .sidebar .module-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim); padding: 16px 24px 6px; margin-top: 8px;
+  }
+  .sidebar a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 24px; color: var(--text-dim); text-decoration: none;
+    font-size: 14px; transition: all .2s; border-left: 3px solid transparent;
+  }
+  .sidebar a:hover { color: var(--text); background: var(--surface2); }
+  .sidebar a.active {
+    color: var(--accent); border-left-color: var(--accent);
+    background: rgba(108,99,255,.08); font-weight: 600;
+  }
+  .sidebar a .badge {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: var(--surface2); color: var(--text-dim); margin-left: auto;
+  }
+  .sidebar a .badge.done { background: rgba(67,233,123,.15); color: var(--correct); }
+  .sidebar a .badge.quiz { background: rgba(108,99,255,.15); color: var(--accent); }
+
+  /* --- MAIN --- */
+  .main { margin-left: 280px; min-height: 100vh; }
+  .hero {
+    padding: 80px 60px 60px; max-width: 860px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 {
+    font-size: 42px; font-weight: 800; line-height: 1.2;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+  }
+  .hero p { font-size: 18px; color: var(--text-dim); max-width: 600px; }
+  .hero .meta { margin-top: 24px; display: flex; gap: 24px; font-size: 13px; color: var(--text-dim); }
+  .hero .meta span { display: flex; align-items: center; gap: 6px; }
+
+  .content { padding: 48px 60px; max-width: 860px; }
+
+  /* --- SECTIONS --- */
+  .section { display: none; animation: fadeIn .4s; }
+  .section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  h2.section-heading {
+    font-size: 28px; font-weight: 700; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  h2 .num {
+    font-size: 13px; padding: 4px 10px; border-radius: 6px;
+    background: rgba(108,99,255,.15); color: var(--accent); font-weight: 700;
+  }
+  .section-subtitle { color: var(--text-dim); margin-bottom: 32px; font-size: 15px; }
+
+  h3 { font-size: 20px; margin: 32px 0 12px; color: var(--text); }
+  p { margin-bottom: 16px; }
+
+  /* --- CARDS / BOXES --- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; margin: 20px 0;
+  }
+  .card.accent-l { border-left: 4px solid var(--accent); }
+  .card.accent-r { border-left: 4px solid var(--accent2); }
+  .card.accent-g { border-left: 4px solid var(--accent3); }
+
+  .compare-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 24px 0;
+  }
+  .compare-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; position: relative;
+  }
+  .compare-card h4 {
+    font-size: 18px; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .compare-card ul { list-style: none; }
+  .compare-card li {
+    padding: 6px 0; font-size: 14px; color: var(--text-dim);
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .compare-card li::before { content: '→'; color: var(--accent); flex-shrink: 0; }
+
+  /* --- CODE BLOCKS --- */
+  .code-block {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); margin: 20px 0; overflow: hidden;
+  }
+  .code-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px; background: var(--surface2);
+    font-size: 12px; color: var(--text-dim); border-bottom: 1px solid var(--border);
+  }
+  .code-header .lang {
+    padding: 2px 8px; border-radius: 4px;
+    background: rgba(108,99,255,.15); color: var(--accent); font-weight: 600;
+  }
+  pre {
+    padding: 20px; overflow-x: auto; font-size: 13px; line-height: 1.6;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace; color: var(--text);
+  }
+  .kw { color: #c792ea; } /* keywords */
+  .fn { color: #82aaff; } /* functions */
+  .str { color: #c3e88d; } /* strings */
+  .cm { color: #546e7a; } /* comments */
+  .cls { color: #ffcb6b; } /* classes */
+  .op { color: #89ddff; } /* operators */
+  .num { color: #f78c6c; } /* numbers */
+
+  /* --- FLOW DIAGRAMS --- */
+  .flow {
+    display: flex; align-items: center; gap: 0; margin: 24px 0;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .flow-node {
+    padding: 12px 20px; border-radius: 10px; font-size: 13px;
+    font-weight: 600; text-align: center; min-width: 100px;
+    position: relative;
+  }
+  .flow-arrow {
+    font-size: 20px; color: var(--text-dim); padding: 0 8px;
+  }
+  .flow-node.input { background: rgba(108,99,255,.2); color: var(--accent); border: 1px solid rgba(108,99,255,.3); }
+  .flow-node.process { background: rgba(255,101,132,.15); color: var(--accent2); border: 1px solid rgba(255,101,132,.25); }
+  .flow-node.tool { background: rgba(67,233,123,.12); color: var(--accent3); border: 1px solid rgba(67,233,123,.2); }
+  .flow-node.output { background: rgba(255,203,107,.12); color: #ffcb6b; border: 1px solid rgba(255,203,107,.2); }
+  .flow-node.decision {
+    background: rgba(108,99,255,.1); color: var(--accent);
+    border: 1px solid rgba(108,99,255,.3);
+    transform: rotate(0deg);
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    padding: 24px 16px; min-width: 120px;
+  }
+
+  /* --- QUIZ --- */
+  .quiz { margin: 32px 0; }
+  .quiz-q {
+    font-size: 16px; font-weight: 600; margin-bottom: 16px;
+    padding: 16px; background: var(--surface);
+    border-radius: var(--radius); border: 1px solid var(--border);
+  }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-opt {
+    padding: 14px 20px; background: var(--surface);
+    border: 2px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; transition: all .2s; font-size: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .quiz-opt:hover { border-color: var(--accent); background: var(--surface2); }
+  .quiz-opt .letter {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface2); display: flex; align-items: center;
+    justify-content: center; font-weight: 700; font-size: 12px;
+    flex-shrink: 0; transition: all .2s;
+  }
+  .quiz-opt.selected { border-color: var(--accent); }
+  .quiz-opt.selected .letter { background: var(--accent); color: #fff; }
+  .quiz-opt.correct { border-color: var(--correct); background: rgba(67,233,123,.08); }
+  .quiz-opt.correct .letter { background: var(--correct); color: #000; }
+  .quiz-opt.wrong { border-color: var(--wrong); background: rgba(255,101,132,.08); }
+  .quiz-opt.wrong .letter { background: var(--wrong); color: #fff; }
+  .quiz-opt.disabled { pointer-events: none; opacity: .6; }
+
+  .quiz-feedback {
+    margin-top: 16px; padding: 16px; border-radius: var(--radius);
+    font-size: 14px; display: none;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct { background: rgba(67,233,123,.1); border: 1px solid rgba(67,233,123,.2); }
+  .quiz-feedback.wrong { background: rgba(255,101,132,.1); border: 1px solid rgba(255,101,132,.2); }
+
+  /* --- DECISION TREE --- */
+  .decision-tree {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 32px; margin: 24px 0;
+  }
+  .dt-node {
+    padding: 16px 20px; border-radius: 10px; margin: 12px 0;
+    font-size: 14px; cursor: pointer; transition: all .2s;
+  }
+  .dt-question {
+    background: rgba(108,99,255,.1); border: 1px solid rgba(108,99,255,.2);
+    font-weight: 600; color: var(--accent);
+  }
+  .dt-answer {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); display: none;
+  }
+  .dt-answer.show { display: block; }
+  .dt-branch { margin-left: 24px; border-left: 2px solid var(--border); padding-left: 20px; }
+  .dt-leaf {
+    padding: 12px 16px; border-radius: 8px; margin: 8px 0; font-size: 13px;
+  }
+  .dt-leaf.langchain { background: rgba(108,99,255,.12); color: var(--accent); border: 1px solid rgba(108,99,255,.2); }
+  .dt-leaf.langgraph { background: rgba(255,101,132,.12); color: var(--accent2); border: 1px solid rgba(255,101,132,.2); }
+  .dt-leaf.both { background: rgba(67,233,123,.12); color: var(--accent3); border: 1px solid rgba(67,233,123,.2); }
+
+  /* --- PROGRESS BAR --- */
+  .progress-bar {
+    position: fixed; top: 0; left: 280px; right: 0; height: 3px;
+    background: var(--surface2); z-index: 200;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    width: 0%; transition: width .4s;
+  }
+
+  /* --- BUTTONS --- */
+  .btn {
+    padding: 12px 28px; border-radius: 10px; border: none;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #5a52e0; transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .nav-buttons {
+    display: flex; justify-content: space-between; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+  }
+
+  /* --- INTERACTIVE SCENARIO --- */
+  .scenario {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px; margin: 24px 0;
+  }
+  .scenario-title {
+    font-size: 16px; font-weight: 700; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .scenario p { font-size: 14px; color: var(--text-dim); margin-bottom: 16px; }
+  .scenario-choice {
+    padding: 12px 16px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px;
+    margin: 8px 0; cursor: pointer; transition: all .2s; font-size: 14px;
+  }
+  .scenario-choice:hover { border-color: var(--accent); }
+  .scenario-choice.selected { border-color: var(--accent); background: rgba(108,99,255,.1); }
+  .scenario-result {
+    margin-top: 16px; padding: 16px; border-radius: 8px;
+    font-size: 14px; display: none;
+  }
+  .scenario-result.show { display: block; }
+  .scenario-result.good { background: rgba(67,233,123,.1); border: 1px solid rgba(67,233,123,.2); }
+  .scenario-result.ok { background: rgba(255,203,107,.1); border: 1px solid rgba(255,203,107,.2); }
+  .scenario-result.bad { background: rgba(255,101,132,.1); border: 1px solid rgba(255,101,132,.2); }
+
+  /* --- TAG --- */
+  .tag {
+    display: inline-block; padding: 3px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .tag.lc { background: rgba(108,99,255,.15); color: var(--accent); }
+  .tag.lg { background: rgba(255,101,132,.15); color: var(--accent2); }
+  .tag.both { background: rgba(67,233,123,.15); color: var(--accent3); }
+
+  /* --- MOBILE --- */
+  .mobile-toggle {
+    display: none; position: fixed; top: 12px; left: 12px; z-index: 200;
+    width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); font-size: 20px;
+    cursor: pointer; align-items: center; justify-content: center;
+  }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .hero, .content { padding: 24px 20px; }
+    .hero h1 { font-size: 28px; }
+    .compare-grid { grid-template-columns: 1fr; }
+    .progress-bar { left: 0; }
+    .mobile-toggle { display: flex; }
+    .flow { gap: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<nav class="sidebar" id="sidebar">
+  <h2>📚 Course Menu</h2>
+
+  <div class="module-title">Module 1 — Foundations</div>
+  <a href="#welcome" class="active" data-section="welcome">Welcome & Overview</a>
+  <a href="#what-is-langchain" data-section="what-is-langchain">What is LangChain? <span class="badge">Theory</span></a>
+  <a href="#lc-core" data-section="lc-core">LangChain Core Building Blocks</a>
+  <a href="#lc-quiz" data-section="lc-quiz">Quiz: LangChain Basics <span class="badge quiz">Quiz</span></a>
+
+  <div class="module-title">Module 2 — LangGraph</div>
+  <a href="#why-langgraph" data-section="why-langgraph">Why LangGraph Exists</a>
+  <a href="#lg-core" data-section="lg-core">LangGraph Core Concepts</a>
+  <a href="#lg-quiz" data-section="lg-quiz">Quiz: LangGraph <span class="badge quiz">Quiz</span></a>
+
+  <div class="module-title">Module 3 — Head to Head</div>
+  <a href="#compare" data-section="compare">Side-by-Side Comparison</a>
+  <a href="#same-task" data-section="same-task">Same Task, Two Approaches</a>
+  <a href="#scenarios" data-section="scenarios">Interactive Scenarios</a>
+
+  <div class="module-title">Module 4 — Decision Framework</div>
+  <a href="#decision-tree" data-section="decision-tree">Decision Tree</a>
+  <a href="#patterns" data-section="patterns">Architecture Patterns</a>
+  <a href="#pitfalls" data-section="pitfalls">Common Pitfalls</a>
+
+  <div class="module-title">Module 5 — Mastery</div>
+  <a href="#final-quiz" data-section="final-quiz">Final Challenge <span class="badge quiz">Quiz</span></a>
+  <a href="#cheatsheet" data-section="cheatsheet">Cheat Sheet <span class="badge">Ref</span></a>
+</nav>
+
+<div class="main">
+  <div class="hero">
+    <h1>LangChain vs LangGraph</h1>
+    <p>An interactive course to help you choose the right tool for the right job. No fluff — just clear mental models, code, and decision frameworks.</p>
+    <div class="meta">
+      <span>📖 13 sections</span>
+      <span>🧪 3 quizzes</span>
+      <span>⏱ ~45 min</span>
+      <span>💻 Python examples</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ========== WELCOME ========== -->
+    <div class="section active" id="welcome">
+      <h2 class="section-heading"><span class="num">00</span> Welcome</h2>
+      <p class="section-subtitle">The confusion is real. Let's fix it.</p>
+
+      <div class="card accent-l">
+        <p><strong>You're here because</strong> you've built (or want to build) an agent with LangChain, and somewhere along the way you heard about LangGraph. Now you're wondering:</p>
+        <ul style="margin: 12px 0 0 20px; color: var(--text-dim);">
+          <li>Is LangGraph a replacement for LangChain?</li>
+          <li>Do I need both? Just one?</li>
+          <li>When does a simple chain become "too simple"?</li>
+          <li>What's the actual mental model difference?</li>
+        </ul>
+      </div>
+
+      <p>By the end of this course you'll have a <strong>clear decision framework</strong> for choosing between them — not based on hype, but on the actual problem you're solving.</p>
+
+      <h3>What we'll cover</h3>
+      <div class="compare-grid">
+        <div class="compare-card">
+          <h4>🧠 Mental Models</h4>
+          <ul>
+            <li>How LangChain thinks about AI apps</li>
+            <li>How LangGraph thinks about AI apps</li>
+            <li>Where the philosophies diverge</li>
+          </ul>
+        </div>
+        <div class="compare-card">
+          <h4>🛠 Hands-On</h4>
+          <ul>
+            <li>Real code for both frameworks</li>
+            <li>Same problem, two solutions</li>
+            <li>Interactive decision scenarios</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="nav-buttons">
+        <div></div>
+        <button class="btn btn-primary" onclick="goNext()">Let's start →</button>
+      </div>
+    </div>
+
+    <!-- ========== WHAT IS LANGCHAIN ========== -->
+    <div class="section" id="what-is-langchain">
+      <h2 class="section-heading"><span class="num">01</span> What is LangChain?</h2>
+      <p class="section-subtitle">The composable toolkit for LLM applications.</p>
+
+      <p>LangChain is a <strong>framework</strong> — think of it as a toolbox full of components you wire together. Its core abstraction is the <strong>chain</strong>: a sequence of steps that process input and produce output.</p>
+
+      <div class="card accent-l">
+        <p><strong>The LangChain mental model:</strong></p>
+        <p style="color: var(--text-dim); margin-top: 8px;">Input → Step 1 → Step 2 → Step 3 → Output</p>
+        <p style="color: var(--text-dim); font-size: 13px;">A pipeline. Linear. Predictable. You define the sequence, the LLM fills in the content.</p>
+      </div>
+
+      <h3>Core components</h3>
+      <div class="compare-grid">
+        <div class="compare-card">
+          <h4>🔗 Chains / LCEL</h4>
+          <ul>
+            <li>Pipe components with <code>|</code></li>
+            <li>Sequential data flow</li>
+            <li>Easy to compose and test</li>
+          </ul>
+        </div>
+        <div class="compare-card">
+          <h4>🧰 Tools</h4>
+          <ul>
+            <li>Functions the LLM can call</li>
+            <li>Search, calculators, APIs</li>
+            <li>Defined with <code>@tool</code> decorator</li>
+          </ul>
+        </div>
+        <div class="compare-card">
+          <h4>🤖 Agents</h4>
+          <ul>
+            <li>LLM decides which tools to use</li>
+            <li>ReAct pattern (reason + act)</li>
+            <li>Simple loop: think → act → observe</li>
+          </ul>
+        </div>
+        <div class="compare-card">
+          <h4>💾 Memory</h4>
+          <ul>
+            <li>Conversation history</li>
+            <li>Buffer, summary, entity types</li>
+            <li>Injected into prompts</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span>LangChain — Simple Agent with Tools</span>
+          <span class="lang">Python</span>
+        </div>
+        <pre><span class="kw">from</span> langchain_openai <span class="kw">import</span> <span class="cls">ChatOpenAI</span>
+<span class="kw">from</span> langchain.agents <span class="kw">import</span> <span class="fn">create_tool_calling_agent</span>, <span class="cls">AgentExecutor</span>
+<span class="kw">from</span> langchain.tools <span class="kw">import</span> <span class="fn">tool</span>
+<span class="kw">from</span> langchain_core.prompts <span class="kw">import</span> <span class="cls">ChatPromptTemplate</span>
+
+<span class="cm"># Define tools</span>
+<span class="op">@</span><span class="fn">tool</span>
+<span class="kw">def</span> <span class="fn">search_web</span>(query: <span class="cls">str</span>) -> <span class="cls">str</span>:
+    <span class="str">"""Search the web for information."""</span>
+    <span class="kw">return</span> <span class="fn">f</span><span class="str">"Results for: {query}"</span>
+
+<span class="op">@</span><span class="fn">tool</span>
+<span class="kw">def</span> <span class="fn">calculator</span>(expression: <span class="cls">str</span>) -> <span class="cls">str</span>:
+    <span class="str">"""Evaluate a math expression."""</span>
+    <span class="kw">return</span> <span class="cls">str</span>(<span class="fn">eval</span>(expression))
+
+<span class="cm"># Create agent</span>
+llm = <span class="cls">ChatOpenAI</span>(model=<span class="str">"gpt-4o"</span>)
+prompt = <span class="cls">ChatPromptTemplate</span>.<span class="fn">from_messages</span>([
+    (<span class="str">"system"</span>, <span class="str">"You are a helpful assistant."</span>),
+    (<span class="str">"placeholder"</span>, <span class="str">"{chat_history}"</span>),
+    (<span class="str">"human"</span>, <span class="str">"{input}"</span>),
+    (<span class="str">"placeholder"</span>, <span class="str">"{agent_scratchpad}"</span>),
+])
+
+agent = <span class="fn">create_tool_calling_agent</span>(llm, [search_web, calculator], prompt)
+executor = <span class="cls">AgentExecutor</span>(agent=agent, tools=[search_web, calculator])
+
+<span class="cm"># Run it</span>
+result = executor.<span class="fn">invoke</span>({<span class="str">"input"</span>: <span class="str">"What's the population of France times 2?"</span>})
+<span class="fn">print</span>(result[<span class="str">"output"</span>])</pre>
+      </div>
+
+      <div class="card accent-g">
+        <p><strong>Key insight:</strong> LangChain agents use a <em>single loop</em> — the LLM decides what to do, does it, observes the result, and repeats until it has an answer. There's no explicit graph of states. No cycles you define. Just a loop.</p>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== LC CORE ========== -->
+    <div class="section" id="lc-core">
+      <h2 class="section-heading"><span class="num">02</span> LangChain Building Blocks</h2>
+      <p class="section-subtitle">Understanding the primitives you'll compose with.</p>
+
+      <h3>LCEL — LangChain Expression Language</h3>
+      <p>The <code>|</code> pipe operator is the backbone. It chains components so the output of one becomes the input of the next.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span>LCEL — A Simple RAG Chain</span>
+          <span class="lang">Python</span>
+        </div>
+        <pre><span class="kw">from</span> langchain_core.runnables <span class="kw">import</span> <span class="cls">RunnablePassthrough</span>
+<span class="kw">from</span> langchain_core.output_parsers <span class="kw">import</span> <span class="cls">StrOutputParser</span>
+
+<span class="cm"># The chain: retrieve → format → prompt → LLM → parse</span>
+chain = (
+    {<span class="str">"context"</span>: retriever, <span class="str">"question"</span>: <span class="cls">RunnablePassthrough</span>()}
+    | prompt
+    | llm
+    | <span class="cls">StrOutputParser</span>()
+)
+
+<span class="cm"># One line to invoke the whole pipeline</span>
+answer = chain.<span class="fn">invoke</span>(<span class="str">"What is LangGraph?"</span>)</pre>
+      </div>
+
+      <h3>When LangChain shines</h3>
+      <div class="card accent-l">
+        <ul style="margin-left: 20px;">
+          <li><strong>RAG pipelines</strong> — retrieve, format, generate. Classic linear flow.</li>
+          <li><strong>Simple chatbots</strong> — prompt + LLM + memory. Straightforward.</li>
+          <li><strong>Data extraction</strong> — structured output from unstructured text.</li>
+          <li><strong>Classification</strong> — categorize text with structured output.</li>
+          <li><strong>Summarization chains</strong> — map-reduce over documents.</li>
+        </ul>
+      </div>
+
+      <h3>Where LangChain struggles</h3>
+      <div class="card accent-r">
+        <ul style="margin-left: 20px;">
+          <li><strong>Multi-step reasoning</strong> — when the agent needs to plan, revise, backtrack</li>
+          <li><strong>Stateful workflows</strong> — tracking progress across many steps</li>
+          <li><strong>Human-in-the-loop</strong> — pausing for approval mid-execution</li>
+          <li><strong>Parallel branches</strong> — doing multiple things simultaneously</li>
+          <li><strong>Cycles and loops</strong> — retry with different strategy, self-correction</li>
+        </ul>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== LC QUIZ ========== -->
+    <div class="section" id="lc-quiz">
+      <h2 class="section-heading"><span class="num">Q1</span> LangChain Basics Quiz</h2>
+      <p class="section-subtitle">Test your understanding of LangChain fundamentals.</p>
+
+      <div class="quiz" id="quiz1">
+        <div class="quiz-q">1. What is the primary abstraction in LangChain's agent system?</div>
+        <div class="quiz-options" data-quiz="q1" data-answer="1">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> A directed graph with nodes and edges</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> A loop: think → act → observe → repeat</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> A state machine with explicit transitions</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> A message queue with workers</div>
+        </div>
+        <div class="quiz-feedback" id="q1-feedback"></div>
+
+        <div class="quiz-q" style="margin-top: 32px;">2. What does LCEL (<code>|</code> operator) do?</div>
+        <div class="quiz-options" data-quiz="q2" data-answer="2">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> Creates parallel execution branches</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> Defines conditional routing logic</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> Pipes output of one component as input to the next</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> Merges multiple data sources</div>
+        </div>
+        <div class="quiz-feedback" id="q2-feedback"></div>
+
+        <div class="quiz-q" style="margin-top: 32px;">3. Which scenario is LangChain's agent model LEAST suited for?</div>
+        <div class="quiz-options" data-quiz="q3" data-answer="3">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> A chatbot that searches the web</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> A document Q&A system with RAG</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> A text classifier with structured output</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> A multi-agent debate system with self-correction</div>
+        </div>
+        <div class="quiz-feedback" id="q3-feedback"></div>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== WHY LANGGRAPH ========== -->
+    <div class="section" id="why-langgraph">
+      <h2 class="section-heading"><span class="num">03</span> Why LangGraph Exists</h2>
+      <p class="section-subtitle">The problem that chains couldn't solve.</p>
+
+      <p>Imagine you're building an agent that needs to:</p>
+      <div class="card accent-r">
+        <ol style="margin-left: 20px; color: var(--text-dim);">
+          <li>Research a topic by searching multiple sources</li>
+          <li>Decide if the information is sufficient — if not, search again with refined queries</li>
+          <li>Draft a summary</li>
+          <li>Review the summary for accuracy — if it fails review, rewrite it</li>
+          <li>Format and output the final result</li>
+        </ol>
+        <p style="margin-top: 12px;">This has <strong>cycles</strong> (retry loops), <strong>branching</strong> (sufficient vs. not), <strong>state</strong> (accumulated research), and <strong>conditional routing</strong> (pass vs. fail review).</p>
+      </div>
+
+      <p>With LangChain's agent loop, you'd hack this into a single prompt and hope the LLM figures out the control flow. It works for simple cases, but as complexity grows, you lose:</p>
+
+      <div class="compare-grid">
+        <div class="compare-card">
+          <h4>❌ What you lose</h4>
+          <ul>
+            <li><strong>Visibility</strong> — can't see where you are in the process</li>
+            <li><strong>Control</strong> — can't force a specific next step</li>
+            <li><strong>State</strong> — no structured way to accumulate data across steps</li>
+            <li><strong>Recovery</strong> — can't resume from a failure point</li>
+            <li><strong>Human oversight</strong> — can't pause for approval</li>
+          </ul>
+        </div>
+        <div class="compare-card">
+          <h4>✅ What LangGraph gives you</h4>
+          <ul>
+            <li><strong>Explicit graph</strong> — you define the states and transitions</li>
+            <li><strong>Persistence</strong> — state saved to a database automatically</li>
+            <li><strong>Cycles</strong> — native support for loops and retries</li>
+            <li><strong>Branching</strong> — conditional edges based on state</li>
+            <li><strong>Human-in-the-loop</strong> — interrupt and resume anywhere</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flow">
+        <div class="flow-node input">Start</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node process">Research</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node decision" style="clip-path:none; transform:none; padding: 12px 16px;">Enough info?</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node process">Draft</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node decision" style="clip-path:none; transform:none; padding: 12px 16px;">Review pass?</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node output">Output</div>
+      </div>
+      <p style="text-align: center; font-size: 13px; color: var(--text-dim);">↑ This is a <strong>graph</strong>, not a chain. The "enough info?" and "review pass?" nodes can loop back.</p>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== LG CORE ========== -->
+    <div class="section" id="lg-core">
+      <h2 class="section-heading"><span class="num">04</span> LangGraph Core Concepts</h2>
+      <p class="section-subtitle">Think in graphs, not chains.</p>
+
+      <h3>The 3 primitives</h3>
+      <div class="compare-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="compare-card">
+          <h4 style="color: var(--accent);">State</h4>
+          <p style="font-size: 13px; color: var(--text-dim);">A typed dictionary that flows through the graph. Every node reads from and writes to it.</p>
+        </div>
+        <div class="compare-card">
+          <h4 style="color: var(--accent2);">Nodes</h4>
+          <p style="font-size: 13px; color: var(--text-dim);">Functions that do work. Call an LLM, run a tool, process data. They take state and return state updates.</p>
+        </div>
+        <div class="compare-card">
+          <h4 style="color: var(--accent3);">Edges</h4>
+          <p style="font-size: 13px; color: var(--text-dim);">Connections between nodes. Can be unconditional (always go here) or conditional (decide based on state).</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span>LangGraph — Research Agent with Retry Logic</span>
+          <span class="lang">Python</span>
+        </div>
+        <pre><span class="kw">from</span> langgraph.graph <span class="kw">import</span> <span class="cls">StateGraph</span>, <span class="cls">START</span>, <span class="cls">END</span>
+<span class="kw">from</span> typing <span class="kw">import</span> <span class="cls">TypedDict</span>, <span class="cls">Annotated</span>
+<span class="kw">import</span> operator
+
+<span class="cm"># 1. Define state — this is your shared memory</span>
+<span class="kw">class</span> <span class="cls">ResearchState</span>(<span class="cls">TypedDict</span>):
+    topic: <span class="cls">str</span>
+    research: <span class="cls">Annotated</span>[<span class="cls">list</span>[<span class="cls">str</span>], operator.add]  <span class="cm"># accumulates</span>
+    draft: <span class="cls">str</span>
+    review_passed: <span class="cls">bool</span>
+    iteration: <span class="cls">int</span>
+
+<span class="cm"># 2. Define nodes — these do the work</span>
+<span class="kw">def</span> <span class="fn">research</span>(state):
+    results = <span class="fn">search</span>(state[<span class="str">"topic"</span>])
+    <span class="kw">return</span> {<span class="str">"research"</span>: [results], <span class="str">"iteration"</span>: state[<span class="str">"iteration"</span>] + <span class="num">1</span>}
+
+<span class="kw">def</span> <span class="fn">draft</span>(state):
+    text = llm.<span class="fn">invoke</span>(<span class="str">f"Write about {state['topic']} using: {state['research']}"</span>)
+    <span class="kw">return</span> {<span class="str">"draft"</span>: text.content}
+
+<span class="kw">def</span> <span class="fn">review</span>(state):
+    passed = <span class="fn">check_quality</span>(state[<span class="str">"draft"</span>])
+    <span class="kw">return</span> {<span class="str">"review_passed"</span>: passed}
+
+<span class="cm"># 3. Define conditional edges — the routing logic</span>
+<span class="kw">def</span> <span class="fn">should_continue_research</span>(state):
+    <span class="kw">if</span> <span class="fn">len</span>(state[<span class="str">"research"</span>]) >= <span class="num">3</span>:
+        <span class="kw">return</span> <span class="str">"draft"</span>
+    <span class="kw">return</span> <span class="str">"research"</span>  <span class="cm"># loop back!</span>
+
+<span class="kw">def</span> <span class="fn">should_retry_draft</span>(state):
+    <span class="kw">if</span> state[<span class="str">"review_passed"</span>]:
+        <span class="kw">return</span> <span class="str">"output"</span>
+    <span class="kw">if</span> state[<span class="str">"iteration"</span>] >= <span class="num">3</span>:
+        <span class="kw">return</span> <span class="str">"output"</span>  <span class="cm"># give up, use best effort</span>
+    <span class="kw">return</span> <span class="str">"research"</span>  <span class="cm"># loop back with more research</span>
+
+<span class="cm"># 4. Build the graph</span>
+graph = <span class="cls">StateGraph</span>(<span class="cls">ResearchState</span>)
+graph.<span class="fn">add_node</span>(<span class="str">"research"</span>, research)
+graph.<span class="fn">add_node</span>(<span class="str">"draft"</span>, draft)
+graph.<span class="fn">add_node</span>(<span class="str">"review"</span>, review)
+
+graph.<span class="fn">add_edge</span>(<span class="cls">START</span>, <span class="str">"research"</span>)
+graph.<span class="fn">add_conditional_edges</span>(<span class="str">"research"</span>, should_continue_research)
+graph.<span class="fn">add_edge</span>(<span class="str">"draft"</span>, <span class="str">"review"</span>)
+graph.<span class="fn">add_conditional_edges</span>(<span class="str">"review"</span>, should_retry_draft)
+
+<span class="cm"># 5. Compile and run</span>
+app = graph.<span class="fn">compile</span>()
+result = app.<span class="fn">invoke</span>({<span class="str">"topic"</span>: <span class="str">"AI agents"</span>, <span class="str">"research"</span>: [], <span class="str">"iteration"</span>: <span class="num">0</span>})</pre>
+      </div>
+
+      <div class="card accent-l">
+        <p><strong>Notice the difference?</strong> In LangChain, you'd encode the retry logic into the prompt. In LangGraph, it's <em>explicit code</em> — you can see every branch, every condition, every loop. The graph is the blueprint of your agent's brain.</p>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== LG QUIZ ========== -->
+    <div class="section" id="lg-quiz">
+      <h2 class="section-heading"><span class="num">Q2</span> LangGraph Quiz</h2>
+      <p class="section-subtitle">Check your LangGraph understanding.</p>
+
+      <div class="quiz" id="quiz2">
+        <div class="quiz-q">1. What are the three core primitives of LangGraph?</div>
+        <div class="quiz-options" data-quiz="q4" data-answer="1">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> Chains, Prompts, Parsers</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> State, Nodes, Edges</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> Models, Tools, Memory</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> Input, Process, Output</div>
+        </div>
+        <div class="quiz-feedback" id="q4-feedback"></div>
+
+        <div class="quiz-q" style="margin-top: 32px;">2. What does <code>add_conditional_edges</code> do?</div>
+        <div class="quiz-options" data-quiz="q5" data-answer="2">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> Adds a node that runs conditionally</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> Creates parallel execution paths</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> Routes to different next-nodes based on the current state</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> Enables retry logic on failure</div>
+        </div>
+        <div class="quiz-feedback" id="q5-feedback"></div>
+
+        <div class="quiz-q" style="margin-top: 32px;">3. What does <code>Annotated[list[str], operator.add]</code> mean in LangGraph state?</div>
+        <div class="quiz-options" data-quiz="q6" data-answer="0">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> When multiple nodes write to this field, their values are appended (reduced with add)</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> The field is read-only and cannot be modified</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> The field is validated on every node transition</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> The field is automatically serialized to JSON</div>
+        </div>
+        <div class="quiz-feedback" id="q6-feedback"></div>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== COMPARE ========== -->
+    <div class="section" id="compare">
+      <h2 class="section-heading"><span class="num">05</span> Side-by-Side Comparison</h2>
+      <p class="section-subtitle">The same concepts, different philosophies.</p>
+
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin: 24px 0;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border);">
+              <th style="padding: 12px 16px; text-align: left; color: var(--text-dim);">Dimension</th>
+              <th style="padding: 12px 16px; text-align: left; color: var(--accent);">LangChain</th>
+              <th style="padding: 12px 16px; text-align: left; color: var(--accent2);">LangGraph</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">Core model</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Chain / pipeline</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Directed graph (DAG + cycles)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">Control flow</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Implicit (LLM decides in agent loop)</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Explicit (you define transitions)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">State management</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Conversation memory (messages)</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Typed state dict (arbitrary data)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">Cycles / loops</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Single agent loop only</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Any node can loop to any node</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">Branching</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Limited (if/else in code)</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Conditional edges with routing functions</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">Persistence</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Manual / via memory classes</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Built-in checkpointing (auto-save state)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">Human-in-the-loop</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Hack with callbacks</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Native <code>interrupt()</code> + resume</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">Streaming</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Token-level from LLM</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Node-level + token-level</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 12px 16px; font-weight: 600;">Debugging</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Trace callbacks (LangSmith)</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Visual graph + state snapshots</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 16px; font-weight: 600;">Learning curve</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Lower — simpler mental model</td>
+              <td style="padding: 12px 16px; color: var(--text-dim);">Higher — graph thinking required</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card accent-g">
+        <p><strong>They're not competitors — they're layers.</strong> LangGraph is built <em>on top of</em> LangChain. You still use LangChain's models, tools, prompts, and parsers inside LangGraph nodes. LangGraph adds the orchestration layer.</p>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== SAME TASK ========== -->
+    <div class="section" id="same-task">
+      <h2 class="section-heading"><span class="num">06</span> Same Task, Two Approaches</h2>
+      <p class="section-subtitle">Build a "research and summarize" agent both ways.</p>
+
+      <h3>The task</h3>
+      <div class="card accent-l">
+        <p>Given a topic, search for information, summarize it, and if the summary is too short, search for more and try again. Output the final summary.</p>
+      </div>
+
+      <h3><span class="tag lc">LangChain</span> Approach</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span>LangChain — Hope the LLM handles the loop</span>
+          <span class="lang">Python</span>
+        </div>
+        <pre><span class="cm"># You put ALL the logic into the prompt</span>
+prompt = <span class="cls">ChatPromptTemplate</span>.<span class="fn">from_template</span>(<span class="str">"""
+Research the topic: {topic}
+
+Instructions:
+1. Search for information using the search tool
+2. Write a summary (at least 200 words)
+3. If your summary is under 200 words, search again
+   with more specific queries and rewrite
+4. Keep going until you have a comprehensive summary
+
+Output ONLY the final summary.
+"""</span>)
+
+agent = <span class="fn">create_tool_calling_agent</span>(llm, [search_tool], prompt)
+executor = <span class="cls">AgentExecutor</span>(agent=agent, tools=[search_tool], max_iterations=<span class="num">10</span>)
+result = executor.<span class="fn">invoke</span>({<span class="str">"topic"</span>: <span class="str">"AI safety"</span>})</pre>
+      </div>
+
+      <div class="card accent-r">
+        <p><strong>Problems:</strong> The LLM might not follow the loop correctly. You can't see how many iterations it did. You can't resume if it fails at iteration 8. You can't pause to approve intermediate results. The "200 words" check is in the LLM's head, not in code.</p>
+      </div>
+
+      <h3><span class="tag lg">LangGraph</span> Approach</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span>LangGraph — Explicit control flow</span>
+          <span class="lang">Python</span>
+        </div>
+        <pre><span class="kw">class</span> <span class="cls">State</span>(<span class="cls">TypedDict</span>):
+    topic: <span class="cls">str</span>
+    summaries: <span class="cls">Annotated</span>[<span class="cls">list</span>, operator.add]
+    final_summary: <span class="cls">str</span>
+    word_count: <span class="cls">int</span>
+
+<span class="kw">def</span> <span class="fn">search_node</span>(state):
+    results = <span class="fn">search</span>(state[<span class="str">"topic"</span>])
+    <span class="kw">return</span> {<span class="str">"summaries"</span>: [results]}
+
+<span class="kw">def</span> <span class="fn">summarize_node</span>(state):
+    combined = <span class="str">" "</span>.<span class="fn">join</span>(state[<span class="str">"summaries"</span>])
+    summary = llm.<span class="fn">invoke</span>(<span class="str">f"Summarize: {combined}"</span>).content
+    <span class="kw">return</span> {<span class="str">"final_summary"</span>: summary, <span class="str">"word_count"</span>: <span class="fn">len</span>(summary.<span class="fn">split</span>())}
+
+<span class="kw">def</span> <span class="fn">is_sufficient</span>(state):
+    <span class="cm"># Deterministic check — not in the LLM's head</span>
+    <span class="kw">if</span> state[<span class="str">"word_count"</span>] >= <span class="num">200</span>:
+        <span class="kw">return</span> <span class="str">"end"</span>
+    <span class="kw">if</span> <span class="fn">len</span>(state[<span class="str">"summaries"</span>]) >= <span class="num">5</span>:
+        <span class="kw">return</span> <span class="str">"end"</span>  <span class="cm"># safety limit</span>
+    <span class="kw">return</span> <span class="str">"search"</span>  <span class="cm"># loop back!</span>
+
+graph = <span class="cls">StateGraph</span>(<span class="cls">State</span>)
+graph.<span class="fn">add_node</span>(<span class="str">"search"</span>, search_node)
+graph.<span class="fn">add_node</span>(<span class="str">"summarize"</span>, summarize_node)
+graph.<span class="fn">add_edge</span>(<span class="cls">START</span>, <span class="str">"search"</span>)
+graph.<span class="fn">add_edge</span>(<span class="str">"search"</span>, <span class="str">"summarize"</span>)
+graph.<span class="fn">add_conditional_edges</span>(<span class="str">"summarize"</span>, is_sufficient)
+app = graph.<span class="fn">compile</span>()</pre>
+      </div>
+
+      <div class="card accent-g">
+        <p><strong>The difference is control.</strong> The LangGraph version has a deterministic word-count check, a safety limit, visible iteration count, and the ability to checkpoint state at each step. The logic is in <em>your code</em>, not in the LLM's instructions.</p>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== SCENARIOS ========== -->
+    <div class="section" id="scenarios">
+      <h2 class="section-heading"><span class="num">07</span> Interactive Scenarios</h2>
+      <p class="section-subtitle">What would YOU choose? Pick and see the reasoning.</p>
+
+      <div class="scenario" id="sc1">
+        <div class="scenario-title">🎯 Scenario 1: Customer Support Bot</div>
+        <p>You're building a chatbot that answers questions using a knowledge base. It needs to retrieve relevant docs and generate answers. Conversations are simple Q&A — no multi-step workflows.</p>
+        <div class="scenario-choice" onclick="pickScenario('sc1', this, 'good')">A) LangChain — simple RAG chain with retrieval + generation</div>
+        <div class="scenario-choice" onclick="pickScenario('sc1', this, 'ok')">B) LangGraph — for future extensibility</div>
+        <div class="scenario-choice" onclick="pickScenario('sc1', this, 'bad')">C) LangGraph with full state machine and 10 nodes</div>
+        <div class="scenario-result" id="sc1-result"></div>
+      </div>
+
+      <div class="scenario" id="sc2">
+        <div class="scenario-title">🎯 Scenario 2: Code Review Agent</div>
+        <p>An agent that reads a PR, identifies issues, suggests fixes, applies them, then re-reviews until all checks pass. Needs retry loops and human approval before committing.</p>
+        <div class="scenario-choice" onclick="pickScenario('sc2', this, 'bad')">A) LangChain AgentExecutor with max_iterations</div>
+        <div class="scenario-choice" onclick="pickScenario('sc2', this, 'good')">B) LangGraph — review → fix → re-review loop with human-in-the-loop</div>
+        <div class="scenario-choice" onclick="pickScenario('sc2', this, 'ok')">C) LangGraph but with only 2 nodes</div>
+        <div class="scenario-result" id="sc2-result"></div>
+      </div>
+
+      <div class="scenario" id="sc3">
+        <div class="scenario-title">🎯 Scenario 3: Email Summarizer</div>
+        <p>A daily cron job that fetches unread emails and generates a one-paragraph summary for each. No interaction, no retries, just batch processing.</p>
+        <div class="scenario-choice" onclick="pickScenario('sc3', this, 'good')">A) LangChain — simple chain: fetch → summarize → format</div>
+        <div class="scenario-choice" onclick="pickScenario('sc3', this, 'bad')">B) LangGraph with checkpointing and state persistence</div>
+        <div class="scenario-choice" onclick="pickScenario('sc3', this, 'ok')">C) LangGraph with parallel branches for each email</div>
+        <div class="scenario-result" id="sc3-result"></div>
+      </div>
+
+      <div class="scenario" id="sc4">
+        <div class="scenario-title">🎯 Scenario 4: Multi-Agent Debate</div>
+        <p>Two AI agents debate a topic: one argues for, one against. A judge agent evaluates their arguments and declares a winner. The debaters can refine their arguments across multiple rounds.</p>
+        <div class="scenario-choice" onclick="pickScenario('sc4', this, 'bad')">A) LangChain with a single agent and clever prompting</div>
+        <div class="scenario-choice" onclick="pickScenario('sc4', this, 'ok')">B) LangChain with AgentExecutor running separate agents</div>
+        <div class="scenario-choice" onclick="pickScenario('sc4', this, 'good')">C) LangGraph — separate nodes for each agent, loop for debate rounds, conditional edge for judge decision</div>
+        <div class="scenario-result" id="sc4-result"></div>
+      </div>
+
+      <div class="scenario" id="sc5">
+        <div class="scenario-title">🎯 Scenario 5: Travel Planner</div>
+        <p>An agent that searches flights, checks hotel availability, and builds an itinerary. If flights are too expensive, it should adjust dates and search again. Needs to coordinate multiple API calls and handle failures gracefully.</p>
+        <div class="scenario-choice" onclick="pickScenario('sc5', this, 'bad')">A) LangChain AgentExecutor — let the LLM figure it out</div>
+        <div class="scenario-choice" onclick="pickScenario('sc5', this, 'good')">B) LangGraph — search → evaluate → adjust loop with error handling nodes</div>
+        <div class="scenario-choice" onclick="pickScenario('sc5', this, 'ok')">C) LangGraph with 20+ nodes for every possible API call</div>
+        <div class="scenario-result" id="sc5-result"></div>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== DECISION TREE ========== -->
+    <div class="section" id="decision-tree">
+      <h2 class="section-heading"><span class="num">08</span> Decision Tree</h2>
+      <p class="section-subtitle">Click through to find the right tool for your use case.</p>
+
+      <div class="decision-tree">
+        <div class="dt-node dt-question" onclick="toggleDT(this)">🤔 Does your agent need to loop, retry, or branch based on results?</div>
+        <div class="dt-answer">
+          <div class="dt-branch">
+            <div class="dt-node dt-question" onclick="toggleDT(this)">→ No — it's a linear pipeline (input → process → output)</div>
+            <div class="dt-answer">
+              <div class="dt-leaf langchain">✅ <strong>Use LangChain</strong> — Chains/LCEL are perfect for linear workflows. RAG, summarization, classification, extraction.</div>
+            </div>
+
+            <div class="dt-node dt-question" onclick="toggleDT(this)">→ Yes — it needs cycles, branching, or retry logic</div>
+            <div class="dt-answer">
+              <div class="dt-node dt-question" onclick="toggleDT(this)">→ Does it need human approval or intervention mid-execution?</div>
+              <div class="dt-answer">
+                <div class="dt-branch">
+                  <div class="dt-node dt-question" onclick="toggleDT(this)">→ Yes — human-in-the-loop is required</div>
+                  <div class="dt-answer">
+                    <div class="dt-leaf langgraph">✅ <strong>Use LangGraph</strong> — Native <code>interrupt()</code> and checkpointing make this trivial.</div>
+                  </div>
+
+                  <div class="dt-node dt-question" onclick="toggleDT(this)">→ No — but it has complex state or multi-agent coordination</div>
+                  <div class="dt-answer">
+                    <div class="dt-leaf langgraph">✅ <strong>Use LangGraph</strong> — Typed state + conditional edges handle complex orchestration.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dt-node dt-question" onclick="toggleDT(this)" style="margin-top: 16px;">🤔 Do you need to resume from failures or persist state across sessions?</div>
+        <div class="dt-answer">
+          <div class="dt-branch">
+            <div class="dt-node dt-question" onclick="toggleDT(this)">→ No — fire and forget is fine</div>
+            <div class="dt-answer">
+              <div class="dt-leaf langchain">✅ <strong>LangChain</strong> is sufficient. Simpler setup, less overhead.</div>
+            </div>
+
+            <div class="dt-node dt-question" onclick="toggleDT(this)">→ Yes — I need to survive crashes and resume</div>
+            <div class="dt-answer">
+              <div class="dt-leaf langgraph">✅ <strong>LangGraph</strong> — Built-in checkpointing with SQLite/Postgres. State survives process restarts.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dt-node dt-question" onclick="toggleDT(this)" style="margin-top: 16px;">🤔 Are you building a multi-agent system?</div>
+        <div class="dt-answer">
+          <div class="dt-branch">
+            <div class="dt-node dt-question" onclick="toggleDT(this)">→ No — single agent with tools</div>
+            <div class="dt-answer">
+              <div class="dt-leaf langchain">✅ <strong>LangChain</strong> AgentExecutor handles single-agent tool use well.</div>
+            </div>
+
+            <div class="dt-node dt-question" onclick="toggleDT(this)">→ Yes — multiple agents collaborating</div>
+            <div class="dt-answer">
+              <div class="dt-leaf langgraph">✅ <strong>LangGraph</strong> — Model each agent as a node. Use edges for communication patterns (supervisor, hierarchical, swarm).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== PATTERNS ========== -->
+    <div class="section" id="patterns">
+      <h2 class="section-heading"><span class="num">09</span> Architecture Patterns</h2>
+      <p class="section-subtitle">Common patterns and when to use them.</p>
+
+      <h3>Pattern 1: Simple RAG <span class="tag lc">LangChain</span></h3>
+      <div class="card accent-l">
+        <div class="flow">
+          <div class="flow-node input">Question</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node tool">Retrieve Docs</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node process">LLM Generate</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node output">Answer</div>
+        </div>
+        <p style="font-size: 14px; color: var(--text-dim); margin-top: 12px;">Use when: Q&A over documents, no retry needed, linear flow. <strong>LangChain LCEL</strong> is perfect.</p>
+      </div>
+
+      <h3>Pattern 2: Agentic RAG <span class="tag lg">LangGraph</span></h3>
+      <div class="card accent-r">
+        <div class="flow">
+          <div class="flow-node input">Question</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node tool">Retrieve</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node process">Evaluate Relevance</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node decision" style="clip-path:none; transform:none; padding: 12px 16px;">Good enough?</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node output">Answer</div>
+        </div>
+        <p style="font-size: 14px; color: var(--text-dim); margin-top: 12px;">Use when: Retrieved docs might be irrelevant, need to re-query with refined search, need quality checks. <strong>LangGraph</strong> handles the loop.</p>
+      </div>
+
+      <h3>Pattern 3: Supervisor Agent <span class="tag lg">LangGraph</span></h3>
+      <div class="card accent-r">
+        <div class="flow">
+          <div class="flow-node input">Task</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node process" style="background: rgba(108,99,255,.2); color: var(--accent); border-color: rgba(108,99,255,.3);">Supervisor</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node tool">Worker A</div>
+          <div style="padding: 0 8px; color: var(--text-dim); font-size: 12px;">or</div>
+          <div class="flow-node tool">Worker B</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node output">Result</div>
+        </div>
+        <p style="font-size: 14px; color: var(--text-dim); margin-top: 12px;">Use when: One agent delegates to specialized workers. The supervisor routes tasks and aggregates results. <strong>LangGraph</strong> with conditional edges.</p>
+      </div>
+
+      <h3>Pattern 4: Simple Tool Agent <span class="tag lc">LangChain</span></h3>
+      <div class="card accent-l">
+        <div class="flow">
+          <div class="flow-node input">Query</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node process">LLM (decides tool)</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node tool">Tool Call</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node output">Answer</div>
+        </div>
+        <p style="font-size: 14px; color: var(--text-dim); margin-top: 12px;">Use when: LLM picks a tool, gets result, answers. Simple loop. <strong>LangChain AgentExecutor</strong> is enough.</p>
+      </div>
+
+      <h3>Pattern 5: Plan-and-Execute <span class="tag lg">LangGraph</span></h3>
+      <div class="card accent-r">
+        <div class="flow">
+          <div class="flow-node input">Goal</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node process">Plan Steps</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node tool">Execute Step</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node decision" style="clip-path:none; transform:none; padding: 12px 16px;">Replan needed?</div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-node output">Done</div>
+        </div>
+        <p style="font-size: 14px; color: var(--text-dim); margin-top: 12px;">Use when: Complex goals that need decomposition, dynamic replanning based on results. <strong>LangGraph</strong> with plan → execute → replan cycle.</p>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== PITFALLS ========== -->
+    <div class="section" id="pitfalls">
+      <h2 class="section-heading"><span class="num">10</span> Common Pitfalls</h2>
+      <p class="section-subtitle">Mistakes people make (and how to avoid them).</p>
+
+      <div class="card accent-r">
+        <h4 style="color: var(--accent2);">❌ Pitfall 1: "I'll use LangGraph for everything"</h4>
+        <p style="font-size: 14px; color: var(--text-dim);">LangGraph adds complexity. If your task is a simple chain, using LangGraph means more code, more concepts, more debugging surface — for zero benefit. <strong>Start with LangChain. Graduate to LangGraph when you feel the pain.</strong></p>
+      </div>
+
+      <div class="card accent-r">
+        <h4 style="color: var(--accent2);">❌ Pitfall 2: "I'll put all the logic in the prompt"</h4>
+        <p style="font-size: 14px; color: var(--text-dim);">If your LangChain agent prompt has 5 paragraphs of conditional instructions ("if X then do Y, unless Z..."), you've outgrown the agent loop. Move the control flow to code with LangGraph. <strong>Prompts are for instructions, not for programming.</strong></p>
+      </div>
+
+      <div class="card accent-r">
+        <h4 style="color: var(--accent2);">❌ Pitfall 3: "LangGraph is just for multi-agent"</h4>
+        <p style="font-size: 14px; color: var(--text-dim);">LangGraph is great for multi-agent, but it's also great for single agents with complex workflows. A single research agent with retry logic, quality checks, and human approval is a perfect LangGraph use case — no second agent needed.</p>
+      </div>
+
+      <div class="card accent-r">
+        <h4 style="color: var(--accent2);">❌ Pitfall 4: "I need to pick one forever"</h4>
+        <p style="font-size: 14px; color: var(--text-dim);">They're layers, not religions. LangGraph uses LangChain components inside its nodes. Start with LangChain chains, and when you need more control, wrap them in a LangGraph graph. <strong>The migration path is smooth.</strong></p>
+      </div>
+
+      <div class="card accent-g">
+        <h4 style="color: var(--accent3);">✅ The golden rule</h4>
+        <p style="font-size: 14px; color: var(--text-dim);"><strong>Use the simplest thing that works.</strong> Add complexity only when you have a specific problem that the simpler approach can't solve. You'll know when you hit that wall — your agent will be unreliable, un-debuggable, or un-extensible.</p>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Next →</button>
+      </div>
+    </div>
+
+    <!-- ========== FINAL QUIZ ========== -->
+    <div class="section" id="final-quiz">
+      <h2 class="section-heading"><span class="num">11</span> Final Challenge</h2>
+      <p class="section-subtitle">Prove your mastery. 5 questions, no peeking.</p>
+
+      <div class="quiz" id="quiz3">
+        <div class="quiz-q">1. You're building a chatbot that answers questions from a FAQ database. No retries, no branching. Which do you use?</div>
+        <div class="quiz-options" data-quiz="q7" data-answer="0">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> LangChain with LCEL chain</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> LangGraph with state machine</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> Raw OpenAI API calls</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> LangGraph with checkpointing</div>
+        </div>
+        <div class="quiz-feedback" id="q7-feedback"></div>
+
+        <div class="quiz-q" style="margin-top: 32px;">2. An agent needs to: draft an email → check for tone → if tone is wrong, rewrite → check again → send when approved. Which approach?</div>
+        <div class="quiz-options" data-quiz="q8" data-answer="2">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> LangChain AgentExecutor</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> LangChain LCEL with a single prompt</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> LangGraph with draft → check → conditional rewrite loop</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> Raw Python with while loops</div>
+        </div>
+        <div class="quiz-feedback" id="q8-feedback"></div>
+
+        <div class="quiz-q" style="margin-top: 32px;">3. What's the key advantage of LangGraph's state over LangChain's memory?</div>
+        <div class="quiz-options" data-quiz="q9" data-answer="1">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> State is faster to access</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> State is typed, arbitrary data (not just messages), with automatic reducers</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> State is stored in a vector database</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> State is encrypted by default</div>
+        </div>
+        <div class="quiz-feedback" id="q9-feedback"></div>
+
+        <div class="quiz-q" style="margin-top: 32px;">4. When should you use LangChain's AgentExecutor instead of LangGraph?</div>
+        <div class="quiz-options" data-quiz="q10" data-answer="0">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> When the agent has a simple think-act-observe loop with no complex control flow</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> When you need state persistence</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> When you need human-in-the-loop</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> When you have multiple agents</div>
+        </div>
+        <div class="quiz-feedback" id="q10-feedback"></div>
+
+        <div class="quiz-q" style="margin-top: 32px;">5. What's the relationship between LangChain and LangGraph?</div>
+        <div class="quiz-options" data-quiz="q11" data-answer="2">
+          <div class="quiz-opt" data-val="0" onclick="selectQuiz(this)"><span class="letter">A</span> LangGraph replaces LangChain entirely</div>
+          <div class="quiz-opt" data-val="1" onclick="selectQuiz(this)"><span class="letter">B</span> They are completely independent frameworks</div>
+          <div class="quiz-opt" data-val="2" onclick="selectQuiz(this)"><span class="letter">C</span> LangGraph is built on top of LangChain — it uses LangChain components for orchestration</div>
+          <div class="quiz-opt" data-val="3" onclick="selectQuiz(this)"><span class="letter">D</span> LangChain is the successor to LangGraph</div>
+        </div>
+        <div class="quiz-feedback" id="q11-feedback"></div>
+      </div>
+
+      <div id="finalScore" style="display: none; margin-top: 32px; padding: 24px; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 12px;" id="scoreEmoji"></div>
+        <div style="font-size: 24px; font-weight: 700;" id="scoreText"></div>
+        <div style="font-size: 14px; color: var(--text-dim); margin-top: 8px;" id="scoreDetail"></div>
+      </div>
+
+      <div class="nav-buttons">
+        <button class="btn btn-ghost" onclick="goPrev()">← Back</button>
+        <button class="btn btn-primary" onclick="goNext()">Get Cheat Sheet →</button>
+      </div>
+    </div>
+
+    <!-- ========== CHEATSHEET ========== -->
+    <div class="section" id="cheatsheet">
+      <h2 class="section-heading"><span class="num">12</span> Cheat Sheet</h2>
+      <p class="section-subtitle">Pin this. Reference it when starting a new project.</p>
+
+      <div class="card accent-l">
+        <h4 style="margin-bottom: 12px;">🟢 Use LangChain when:</h4>
+        <ul style="margin-left: 20px; font-size: 14px; color: var(--text-dim); line-height: 2;">
+          <li>Linear pipeline: input → process → output</li>
+          <li>Simple RAG (retrieve + generate)</li>
+          <li>Text classification / extraction / summarization</li>
+          <li>Single agent with straightforward tool use</li>
+          <li>You want minimal boilerplate and fast prototyping</li>
+          <li>Conversation memory is enough state</li>
+        </ul>
+      </div>
+
+      <div class="card accent-r">
+        <h4 style="margin-bottom: 12px;">🔴 Use LangGraph when:</h4>
+        <ul style="margin-left: 20px; font-size: 14px; color: var(--text-dim); line-height: 2;">
+          <li>Cycles: retry loops, iterative refinement</li>
+          <li>Conditional branching: different paths based on results</li>
+          <li>Multi-agent systems: supervisor, debate, swarm</li>
+          <li>Human-in-the-loop: pause for approval mid-execution</li>
+          <li>State persistence: survive crashes, resume later</li>
+          <li>Complex state: accumulate data across many steps</li>
+          <li>You need visibility into exactly which step you're on</li>
+          <li>Long-running workflows (minutes to hours)</li>
+        </ul>
+      </div>
+
+      <div class="card accent-g">
+        <h4 style="margin-bottom: 12px;">🔵 The mental model:</h4>
+        <div style="font-size: 14px; color: var(--text-dim); line-height: 2;">
+          <p><strong>LangChain</strong> = "Here are the tools. Go figure it out." (LLM controls flow)</p>
+          <p><strong>LangGraph</strong> = "Here's the blueprint. Follow it." (You control flow, LLM does the work)</p>
+          <p style="margin-top: 12px;"><strong>Start simple. Add complexity when it hurts.</strong></p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span>Quick Reference — Decision Checklist</span>
+          <span class="lang">Text</span>
+        </div>
+        <pre><span class="cm">Ask yourself:</span>
+
+<span class="num">1.</span> Does my agent need to <span class="str">LOOP</span> or <span class="str">RETRY</span>?
+   YES → LangGraph    NO → keep going
+
+<span class="num">2.</span> Does it need <span class="str">CONDITIONAL BRANCHING</span> (if/else routing)?
+   YES → LangGraph    NO → keep going
+
+<span class="num">3.</span> Does it need <span class="str">HUMAN APPROVAL</span> mid-execution?
+   YES → LangGraph    NO → keep going
+
+<span class="num">4.</span> Does it need to <span class="str">PERSIST STATE</span> across sessions?
+   YES → LangGraph    NO → keep going
+
+<span class="num">5.</span> Is it a <span class="str">MULTI-AGENT</span> system?
+   YES → LangGraph    NO → keep going
+
+<span class="num">6.</span> Is it a <span class="str">LINEAR PIPELINE</span> or <span class="str">SIMPLE AGENT LOOP</span>?
+   YES → <span class="kw">LangChain</span>    You're done!</pre>
+      </div>
+
+      <div class="card" style="text-align: center; margin-top: 32px;">
+        <p style="font-size: 20px; font-weight: 700;">🎉 Course Complete!</p>
+        <p style="color: var(--text-dim); margin-top: 8px;">You now have a clear mental model for choosing between LangChain and LangGraph.</p>
+        <p style="color: var(--text-dim); font-size: 13px; margin-top: 16px;">Bookmark this page and come back when starting a new project.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// --- NAVIGATION ---
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('.sidebar a[data-section]');
+let currentIdx = 0;
+
+function showSection(id) {
+  sections.forEach(s => s.classList.remove('active'));
+  navLinks.forEach(l => l.classList.remove('active'));
+  const target = document.getElementById(id);
+  if (target) {
+    target.classList.add('active');
+    currentIdx = Array.from(sections).indexOf(target);
+    navLinks.forEach(l => {
+      if (l.dataset.section === id) l.classList.add('active');
+    });
+    updateProgress();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Close mobile sidebar
+    document.querySelector('.sidebar').classList.remove('open');
+  }
+}
+
+navLinks.forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    showSection(link.dataset.section);
+    history.pushState(null, '', link.getAttribute('href'));
+  });
+});
+
+function goNext() {
+  if (currentIdx < sections.length - 1) {
+    const nextId = sections[currentIdx + 1].id;
+    showSection(nextId);
+    history.pushState(null, '', '#' + nextId);
+  }
+}
+function goPrev() {
+  if (currentIdx > 0) {
+    const prevId = sections[currentIdx - 1].id;
+    showSection(prevId);
+    history.pushState(null, '', '#' + prevId);
+  }
+}
+
+function updateProgress() {
+  const pct = ((currentIdx + 1) / sections.length) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// Handle hash on load
+if (location.hash) {
+  const id = location.hash.slice(1);
+  showSection(id);
+}
+updateProgress();
+
+// --- QUIZ ---
+const quizFeedback = {
+  q1: { correct: "Exactly! LangChain agents follow the ReAct loop — Reason, Act, Observe, repeat. The LLM decides what to do next at each iteration.", wrong: "Not quite. LangChain's agent model is a single loop where the LLM decides the next action — think ReAct pattern." },
+  q2: { correct: "Right! LCEL pipes data through a sequence of components. Output of one → input of the next.", wrong: "LCEL is about sequential composition. The | operator chains components in a pipeline." },
+  q3: { correct: "Correct! A multi-agent debate with self-correction has cycles, branching, and complex state — exactly what LangGraph was designed for.", wrong: "Multi-agent debate systems need cycles (rounds), conditional routing (judge decisions), and accumulated state — all LangGraph strengths." },
+  q4: { correct: "Yes! State (shared memory), Nodes (workers), and Edges (connections) are LangGraph's three primitives.", wrong: "The three primitives are State, Nodes, and Edges. Everything else is built on top of these." },
+  q5: { correct: "Exactly! Conditional edges are routing functions that examine the current state and decide which node to go to next.", wrong: "Conditional edges look at the current state and route to different nodes based on the result. They're the branching logic of the graph." },
+  q6: { correct: "Right! The Annotated type with operator.add means this field accumulates — when multiple nodes return values for 'research', they get appended to the list.", wrong: "The Annotated[list[str], operator.add] syntax tells LangGraph to reduce multiple writes using addition (append), so the list grows as nodes contribute." },
+  q7: { correct: "Correct! Simple FAQ chatbot = linear pipeline. LangChain LCEL is the right tool. No need for graph complexity.", wrong: "For a simple Q&A bot with no retries or branching, LangChain's LCEL chain is the simplest and most appropriate choice." },
+  q8: { correct: "Right! The draft → check → rewrite loop with conditional routing is exactly what LangGraph excels at.", wrong: "This workflow has a retry loop (rewrite if tone is wrong) and conditional branching — classic LangGraph territory." },
+  q9: { correct: "Exactly! LangGraph state is a typed dictionary that can hold any data structure, with automatic reducers for handling concurrent writes from multiple nodes.", wrong: "LangGraph's state advantage is that it's typed, can hold arbitrary data (not just chat messages), and supports reducers for combining updates." },
+  q10: { correct: "Correct! Simple think-act-observe loops are what AgentExecutor was designed for. No need for the added complexity of LangGraph.", wrong: "AgentExecutor is the right choice when the agent follows a simple ReAct loop without complex control flow requirements." },
+  q11: { correct: "Right! LangGraph uses LangChain's models, tools, prompts, and parsers inside its nodes. It adds orchestration on top.", wrong: "LangGraph is built on top of LangChain. It uses LangChain components (models, tools, prompts) and adds graph-based orchestration." },
+};
+
+const quizAnswers = {};
+
+function selectQuiz(el) {
+  const parent = el.closest('.quiz-options');
+  const quizId = parent.dataset.quiz;
+  const correctVal = parent.dataset.answer;
+  const selectedVal = el.dataset.val;
+
+  // Clear previous
+  parent.querySelectorAll('.quiz-opt').forEach(o => {
+    o.classList.remove('selected', 'correct', 'wrong', 'disabled');
+  });
+
+  el.classList.add('selected');
+  quizAnswers[quizId] = selectedVal;
+
+  // Show feedback
+  const feedback = document.getElementById(quizId + '-feedback');
+  if (selectedVal === correctVal) {
+    el.classList.add('correct');
+    parent.querySelectorAll('.quiz-opt').forEach(o => o.classList.add('disabled'));
+    feedback.textContent = quizFeedback[quizId].correct;
+    feedback.className = 'quiz-feedback show correct';
+  } else {
+    el.classList.add('wrong');
+    // Highlight correct
+    parent.querySelector(`[data-val="${correctVal}"]`).classList.add('correct');
+    parent.querySelectorAll('.quiz-opt').forEach(o => o.classList.add('disabled'));
+    feedback.textContent = quizFeedback[quizId].wrong;
+    feedback.className = 'quiz-feedback show wrong';
+  }
+
+  // Check if final quiz is complete
+  checkFinalQuiz();
+}
+
+function checkFinalQuiz() {
+  const finalQs = ['q7', 'q8', 'q9', 'q10', 'q11'];
+  const allAnswered = finalQs.every(q => quizAnswers[q] !== undefined);
+  if (!allAnswered) return;
+
+  let score = 0;
+  finalQs.forEach(q => {
+    const parent = document.querySelector(`[data-quiz="${q}"]`);
+    if (quizAnswers[q] === parent.dataset.answer) score++;
+  });
+
+  const scoreDiv = document.getElementById('finalScore');
+  scoreDiv.style.display = 'block';
+
+  const emoji = document.getElementById('scoreEmoji');
+  const text = document.getElementById('scoreText');
+  const detail = document.getElementById('scoreDetail');
+
+  if (score === 5) {
+    emoji.textContent = '🏆';
+    text.textContent = 'Perfect Score!';
+    detail.textContent = 'You\'ve mastered LangChain vs LangGraph. Go build something great.';
+  } else if (score >= 4) {
+    emoji.textContent = '🎯';
+    text.textContent = `${score}/5 — Excellent!`;
+    detail.textContent = 'You have a solid grasp of when to use each tool.';
+  } else if (score >= 3) {
+    emoji.textContent = '👍';
+    text.textContent = `${score}/5 — Good`;
+    detail.textContent = 'Review the sections you missed and try the scenarios again.';
+  } else {
+    emoji.textContent = '📚';
+    text.textContent = `${score}/5 — Keep Learning`;
+    detail.textContent = 'Re-read the comparison and decision tree sections. The patterns will click.';
+  }
+}
+
+// --- SCENARIOS ---
+const scenarioData = {
+  sc1: {
+    good: { title: '✅ Correct!', text: 'Simple Q&A over a knowledge base is a textbook LangChain RAG use case. Linear flow: retrieve → generate. No retries, no branching. LangChain LCEL gives you this in ~10 lines.', type: 'good' },
+    ok: { title: '🤔 Technically works...', text: 'LangGraph would work, but it\'s overkill. You\'d be adding state definitions, node functions, and graph compilation for what is essentially a two-step pipeline. Start simple.', type: 'ok' },
+    bad: { title: '❌ Way over-engineered', text: 'A 10-node state machine for a FAQ bot? This is the "I\'ll use LangGraph for everything" antipattern. You\'ll spend more time debugging the graph than the actual bot.', type: 'bad' },
+  },
+  sc2: {
+    good: { title: '✅ Perfect choice!', text: 'Review → fix → re-review is a classic loop with conditional exit. Human approval before committing is native in LangGraph with interrupt(). This is exactly what LangGraph was built for.', type: 'good' },
+    bad: { title: '❌ Problematic', text: 'AgentExecutor doesn\'t give you clean retry logic, can\'t pause for human approval, and you can\'t see which iteration you\'re on. The agent might get stuck in an infinite loop or skip the review step.', type: 'bad' },
+    ok: { title: '🤔 Too minimal', text: 'Just 2 nodes won\'t capture the review → fix → re-review cycle properly. You need at least: review, fix, human_approval, and conditional edges between them.', type: 'ok' },
+  },
+  sc3: {
+    good: { title: '✅ Right tool for the job', text: 'Batch email summarization is a simple map operation: fetch emails → summarize each → done. LangChain\'s chain or even just a loop with LLM calls is sufficient. No control flow complexity.', type: 'good' },
+    bad: { title: '❌ Unnecessary complexity', text: 'Checkpointing and state persistence for a daily cron job? If it fails, just re-run it. The emails aren\'t going anywhere. LangGraph adds overhead for zero benefit here.', type: 'bad' },
+    ok: { title: '🤔 Over-engineering', text: 'Parallel branches could speed things up, but you can achieve the same with Python\'s asyncio or multiprocessing. LangGraph\'s parallelism is for graph-level branching, not simple batch parallelism.', type: 'ok' },
+  },
+  sc4: {
+    good: { title: '✅ Excellent choice!', text: 'Multi-agent debate is a perfect LangGraph use case. Each debater is a node, the judge is a conditional edge, and the debate rounds are cycles in the graph. State accumulates arguments across rounds.', type: 'good' },
+    bad: { title: '❌ Too simplistic', text: 'A single agent can\'t reliably simulate two distinct perspectives while tracking arguments and making fair judgments. You need actual separation of concerns — separate agents with separate state.', type: 'bad' },
+    ok: { title: '🤔 Workable but messy', text: 'Running separate AgentExecutors and coordinating them in Python code is possible, but you\'re essentially building a poor man\'s LangGraph. The coordination logic will be fragile and hard to debug.', type: 'ok' },
+  },
+  sc5: {
+    good: { title: '✅ Perfect!', text: 'Travel planning has conditional loops (too expensive → adjust dates), error handling (API failures → fallback), and multi-step coordination. LangGraph\'s explicit control flow makes this reliable and debuggable.', type: 'good' },
+    bad: { title: '❌ Unreliable', text: 'Letting the LLM figure out the entire travel planning flow is risky. It might not retry when flights are expensive, might not handle API errors, and you can\'t see where it failed. Too many implicit decisions.', type: 'bad' },
+    ok: { title: '🤔 Over-engineering the wrong thing', text: '20+ nodes for every API call is too granular. Group related operations: "search_flights" node (handles multiple API calls internally), "search_hotels" node, etc. Nodes should be meaningful steps, not individual API calls.', type: 'ok' },
+  },
+};
+
+function pickScenario(scId, el, quality) {
+  const sc = document.getElementById(scId);
+  sc.querySelectorAll('.scenario-choice').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+
+  const result = document.getElementById(scId + '-result');
+  const data = scenarioData[scId][quality];
+  result.innerHTML = `<strong>${data.title}</strong><br>${data.text}`;
+  result.className = `scenario-result show ${data.type}`;
+}
+
+// --- DECISION TREE ---
+function toggleDT(el) {
+  const answer = el.nextElementSibling;
+  if (answer && answer.classList.contains('dt-answer')) {
+    answer.classList.toggle('show');
+  }
+}
+</script>
+</body>
+</html>
